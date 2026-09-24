@@ -1,4 +1,6 @@
 import Hero from "../components/Hero"
+import CinematicStory from "../components/CinematicStory"
+import Marquee from "../components/Marquee"
 import Discover from "../components/Discover"
 import MenuSection from "../components/MenuSection"
 import WhyDifferent from "../components/WhyDifferent"
@@ -10,6 +12,8 @@ function Home() {
   return (
     <>
       <Hero />
+      <CinematicStory />
+      <Marquee />
       <Discover />
       <MenuSection />
       <WhyDifferent />

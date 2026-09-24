@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom"
+import { useRef } from "react"
 import { imgFooterTexture } from "../assets/images"
+import { gsap, useGSAP, reducedMotion } from "../lib/gsap"
 
 const aboutLinks = [
   { label: "Menu", to: "/menu" },
@@ -57,15 +59,52 @@ const socials = [
 ]
 
 function Footer() {
+  const root = useRef(null)
+
+  useGSAP(
+    () => {
+      if (reducedMotion()) return
+      gsap.from("[data-foot-col]", {
+        y: 80,
+        opacity: 0,
+        rotateX: -30,
+        transformPerspective: 900,
+        stagger: 0.12,
+        duration: 1.2,
+        ease: "expo.out",
+        scrollTrigger: { trigger: root.current, start: "top 85%", once: true },
+      })
+      gsap.from("[data-social]", {
+        scale: 0,
+        rotate: -180,
+        stagger: 0.08,
+        duration: 1,
+        ease: "back.out(2)",
+        scrollTrigger: { trigger: root.current, start: "top 80%", once: true },
+      })
+
+      // End credits: the giant wordmark rises letter by letter as the reel runs out.
+      gsap.from("[data-credit-letter]", {
+        yPercent: 100,
+        rotateX: -60,
+        opacity: 0,
+        stagger: 0.04,
+        ease: "power3.out",
+        scrollTrigger: { trigger: "[data-credits]", start: "top bottom", end: "bottom bottom", scrub: 1 },
+      })
+    },
+    { scope: root }
+  )
+
   return (
-    <footer className="relative bg-[#442808] overflow-hidden pt-20 pb-10">
+    <footer ref={root} className="relative bg-[#442808] overflow-hidden pt-20 pb-10">
       <img
         src={imgFooterTexture}
         alt=""
         className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-80 pointer-events-none"
       />
       <div className="relative max-w-7xl mx-auto px-6 md:px-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-16">
-        <div>
+        <div data-foot-col>
           <Link to="/" className="font-script text-white text-4xl block mb-4">
             Bean Scene
           </Link>
@@ -82,21 +121,22 @@ function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={s.label}
-                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/80 hover:bg-[#f9c06a] hover:text-[#1e1e1e] transition-colors"
+                data-social
+                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-white/80 hover:bg-[#f9c06a] hover:text-[#1e1e1e] hover:-translate-y-1 hover:rotate-[360deg] transition-[background-color,color,translate,rotate] duration-500"
               >
                 {s.icon}
               </a>
             ))}
           </div>
         </div>
-        <div>
+        <div data-foot-col>
           <h4 className="text-white text-xl font-bold mb-6">About</h4>
           <ul className="text-white/70 text-sm space-y-3">
             {aboutLinks.map((l) => (
               <li key={l.to}>
                 <Link
                   to={l.to}
-                  className="hover:text-[#f9c06a] transition-colors"
+                  className="inline-block hover:text-[#f9c06a] hover:translate-x-2 transition-[color,translate] duration-300"
                 >
                   {l.label}
                 </Link>
@@ -104,14 +144,14 @@ function Footer() {
             ))}
           </ul>
         </div>
-        <div>
+        <div data-foot-col>
           <h4 className="text-white text-xl font-bold mb-6">Company</h4>
           <ul className="text-white/70 text-sm space-y-3">
             {companyLinks.map((l) => (
               <li key={l.label}>
                 <Link
                   to={l.to}
-                  className="hover:text-[#f9c06a] transition-colors"
+                  className="inline-block hover:text-[#f9c06a] hover:translate-x-2 transition-[color,translate] duration-300"
                 >
                   {l.label}
                 </Link>
@@ -119,7 +159,7 @@ function Footer() {
             ))}
           </ul>
         </div>
-        <div>
+        <div data-foot-col>
           <h4 className="text-white text-xl font-bold mb-6">Contact Us</h4>
           <ul className="text-white/70 text-sm space-y-3">
             <li>
@@ -131,6 +171,21 @@ function Footer() {
             <li>www.beanscene.com</li>
           </ul>
         </div>
+      </div>
+      <div data-credits className="relative max-w-7xl mx-auto px-6 md:px-10 mb-10" style={{ perspective: 800 }}>
+        <p className="text-[#f9c06a] text-[10px] md:text-xs uppercase tracking-[0.5em] text-center mb-2">
+          A Bean Scene Production · Directed by our Baristas
+        </p>
+        <p
+          aria-hidden="true"
+          className="font-script text-white/90 text-center leading-none text-[clamp(64px,17vw,240px)] flex justify-center overflow-hidden"
+        >
+          {"Bean Scene".split("").map((c, i) => (
+            <span key={i} data-credit-letter className="inline-block" style={{ whiteSpace: "pre" }}>
+              {c}
+            </span>
+          ))}
+        </p>
       </div>
       <div className="relative max-w-7xl mx-auto px-6 md:px-10 pt-8 border-t border-white/10 text-center text-white/50 text-xs">
         © {new Date().getFullYear()} Bean Scene. All rights reserved.

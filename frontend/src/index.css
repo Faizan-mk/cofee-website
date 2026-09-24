@@ -28,3 +28,122 @@ body {
     transform: translateY(0);
   }
 }
+
+/* ---- Cinematic layer ---------------------------------------------------- */
+
+/* The travelling cup (z-5) passes over section backgrounds but under every piece of
+   content: each section's direct content blocks are lifted to z-10. */
+@layer base {
+  main section > :not(img):not(.absolute):not(.fixed),
+  footer > :not(img):not(.absolute) {
+    position: relative;
+    z-index: 10;
+  }
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+::selection {
+  background: #f9c06a;
+  color: #1e1e1e;
+}
+
+/* Film grain + vignette over the whole reel. */
+.film-grain {
+  position: fixed;
+  inset: -50%;
+  z-index: 90;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain 0.8s steps(6) infinite;
+}
+
+.film-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 89;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(20, 12, 5, 0.35) 100%);
+}
+
+@keyframes grain {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-6%, 4%); }
+  40% { transform: translate(5%, -7%); }
+  60% { transform: translate(-3%, 8%); }
+  80% { transform: translate(7%, 2%); }
+  100% { transform: translate(-4%, -5%); }
+}
+
+@keyframes scrollCue {
+  0% { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(100%); }
+}
+
+@keyframes leafSway {
+  0%, 100% { rotate: -3deg; }
+  50% { rotate: 4deg; }
+}
+
+.leaf-sway {
+  animation: leafSway 6s ease-in-out infinite;
+}
+
+.reel-dot {
+  color: rgb(255 255 255 / 0.35);
+  transition: color 0.4s, transform 0.4s;
+}
+
+.reel-dot.is-active {
+  color: #f9c06a;
+  transform: translateX(-6px) scale(1.25);
+}
+
+/* A glint sweeps across the button every few seconds. */
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.65) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: btnShine 3.6s ease-in-out infinite 2s;
+}
+
+@keyframes btnShine {
+  0%, 60% { transform: translateX(-120%); }
+  85%, 100% { transform: translateX(120%); }
+}
+
+/* Native pointer hidden only while the custom cursor is running; text fields keep the I-beam. */
+html.custom-cursor,
+html.custom-cursor * {
+  cursor: none !important;
+}
+
+html.custom-cursor input,
+html.custom-cursor textarea,
+html.custom-cursor [contenteditable="true"] {
+  cursor: text !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .film-grain,
+  .leaf-sway,
+  .btn-shine::after {
+    animation: none;
+  }
+}

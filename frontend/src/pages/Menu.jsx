@@ -1,12 +1,32 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import PageHero from "../components/PageHero"
 import MenuCard from "../components/MenuCard"
 import Button from "../components/Button"
 import { categories, menuItems, money } from "../data/menuItems"
+import { gsap, useGSAP, reducedMotion } from "../lib/gsap"
 
 function Menu() {
   const [active, setActive] = useState("Hot Coffee")
   const filtered = menuItems.filter((item) => item.category === active)
+  const grid = useRef(null)
+  const switched = useRef(false)
+
+  useGSAP(
+    () => {
+      if (!switched.current || reducedMotion()) return
+      gsap.from(grid.current.children, {
+        rotateY: -70,
+        x: 60,
+        opacity: 0,
+        transformPerspective: 1000,
+        transformOrigin: "0% 50%",
+        duration: 0.9,
+        stagger: 0.08,
+        ease: "expo.out",
+      })
+    },
+    { dependencies: [active] }
+  )
 
   return (
     <>
@@ -19,7 +39,10 @@ function Menu() {
           {categories.map((c) => (
             <button
               key={c}
-              onClick={() => setActive(c)}
+              onClick={() => {
+                switched.current = true
+                setActive(c)
+              }}
               className={`px-6 py-3 rounded-full font-bold text-sm transition-colors ${
                 active === c
                   ? "bg-[#f9c06a] text-[#1e1e1e] shadow-[0px_6px_12px_0px_rgba(249,192,106,0.35)]"
@@ -30,7 +53,7 @@ function Menu() {
             </button>
           ))}
         </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div ref={grid} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {filtered.map((item) => (
             <MenuCard key={item.name} {...item} price={money(item.price)} />
           ))}

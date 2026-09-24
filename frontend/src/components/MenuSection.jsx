@@ -1,14 +1,38 @@
 import { imgCoffeeBlast } from "../assets/images"
 import { menuItems, money } from "../data/menuItems"
 import MenuCard from "./MenuCard"
+import { useRef } from "react"
+import { gsap, useGSAP, reducedMotion } from "../lib/gsap"
 
 function MenuSection() {
   const featured = menuItems.filter((item) =>
     ["Cappuccino", "Chai Latte", "Macchiato", "Expresso"].includes(item.name)
   )
+  const root = useRef(null)
+
+  useGSAP(
+    () => {
+      if (reducedMotion()) return
+      // The coffee splash swirls round as the section scrolls past.
+      gsap.fromTo(
+        "[data-splash]",
+        { rotate: 140, xPercent: 30, scale: 0.8 },
+        {
+          rotate: 220,
+          xPercent: -10,
+          scale: 1.15,
+          ease: "none",
+          scrollTrigger: { trigger: root.current, start: "top bottom", end: "bottom top", scrub: 1 },
+        }
+      )
+    },
+    { scope: root }
+  )
+
   return (
-    <section className="relative max-w-7xl mx-auto px-6 md:px-10 py-16 md:py-24">
+    <section ref={root} className="relative max-w-7xl mx-auto px-6 md:px-10 py-16 md:py-24">
       <img
+        data-splash
         src={imgCoffeeBlast}
         alt=""
         className="hidden md:block absolute right-0 top-24 w-[420px] rotate-180 opacity-70 pointer-events-none select-none"

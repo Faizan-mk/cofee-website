@@ -1,5 +1,6 @@
 import { useRef } from "react"
 import { imgCtaBg, imgAvatar } from "../assets/images"
+import { gsap, useGSAP, reducedMotion } from "../lib/gsap"
 
 const testimonials = [
   {
@@ -42,6 +43,7 @@ const testimonials = [
 
 function Testimonials() {
   const scrollerRef = useRef(null)
+  const root = useRef(null)
 
   const scrollByCards = (dir) => {
     const el = scrollerRef.current
@@ -51,12 +53,76 @@ function Testimonials() {
     el.scrollBy({ left: amount, behavior: "smooth" })
   }
 
+  useGSAP(
+    () => {
+      const el = scrollerRef.current
+      if (reducedMotion() || !el) return
+      const cards = gsap.utils.toArray("article", el)
+
+      // Cards are dealt in from below, one after another.
+      gsap.from(cards, {
+        y: 140,
+        opacity: 0,
+        duration: 1.3,
+        stagger: 0.12,
+        ease: "expo.out",
+        scrollTrigger: { trigger: el, start: "top 85%", once: true },
+      })
+
+      // Coverflow: cards away from the centre of the strip turn away and sink back.
+      gsap.set(cards, { transformPerspective: 1200 })
+      const setters = cards.map((c) => ({
+        ry: gsap.quickTo(c, "rotationY", { duration: 0.5, ease: "power3" }),
+        s: gsap.quickTo(c, "scale", { duration: 0.5, ease: "power3" }),
+      }))
+      const flow = () => {
+        const box = el.getBoundingClientRect()
+        const mid = box.left + box.width / 2
+        cards.forEach((c, i) => {
+          const r = c.getBoundingClientRect()
+          const d = gsap.utils.clamp(-1, 1, (r.left + r.width / 2 - mid) / box.width)
+          setters[i].ry(d * -35)
+          setters[i].s(1 - Math.abs(d) * 0.12)
+        })
+      }
+      flow()
+      el.addEventListener("scroll", flow, { passive: true })
+      window.addEventListener("resize", flow)
+
+      // Auto-advance every few seconds unless someone is reading (hovering) the strip.
+      let paused = false
+      const pause = () => (paused = true)
+      const resume = () => (paused = false)
+      el.addEventListener("pointerenter", pause)
+      el.addEventListener("pointerleave", resume)
+      const auto = gsap.delayedCall(4.5, function next() {
+        if (!paused) {
+          const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4
+          if (atEnd) el.scrollTo({ left: 0, behavior: "smooth" })
+          else scrollByCards(1)
+        }
+        auto.restart(true)
+      })
+
+      return () => {
+        auto.kill()
+        el.removeEventListener("scroll", flow)
+        window.removeEventListener("resize", flow)
+        el.removeEventListener("pointerenter", pause)
+        el.removeEventListener("pointerleave", resume)
+      }
+    },
+    { scope: root }
+  )
+
+
   return (
-    <section className="relative overflow-hidden">
+    <section ref={root} className="relative overflow-hidden">
       <img
+        data-parallax="0.15"
         src={imgCtaBg}
         alt=""
-        className="absolute inset-0 w-full h-full object-cover"
+        className="absolute inset-0 w-full h-full object-cover scale-[1.35]"
       />
       <div className="absolute inset-0 bg-[#603809] opacity-80" />
       <div className="relative max-w-7xl mx-auto px-6 md:px-10 py-16 md:py-24">
@@ -72,12 +138,12 @@ function Testimonials() {
         <div className="relative">
           <div
             ref={scrollerRef}
-            className="flex gap-8 overflow-x-auto snap-x snap-mandatory pb-4 no-scrollbar"
+            className="flex gap-8 overflow-x-auto snap-x snap-mandatory py-8 no-scrollbar"
           >
             {testimonials.map((t) => (
               <article
                 key={t.name}
-                className="snap-start shrink-0 w-[85%] sm:w-[46%] lg:w-[31.5%] bg-[#fff9f1] border border-[#f9c06a]/40 rounded-[24px] p-8 flex flex-col"
+                className="snap-start shrink-0 w-[85%] sm:w-[46%] lg:w-[31.5%] bg-[#fff9f1] border border-[#f9c06a]/40 rounded-[24px] p-8 flex flex-col shadow-[0_20px_50px_rgba(0,0,0,0.25)] hover:-translate-y-2 transition-[translate,box-shadow] duration-500"
               >
                 <div className="flex items-center justify-between mb-4">
                   <span className="font-script text-[#603809] text-[56px] leading-[0.5] select-none">

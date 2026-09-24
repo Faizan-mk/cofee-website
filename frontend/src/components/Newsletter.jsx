@@ -37,22 +37,23 @@ function Newsletter() {
   return (
     <section className="relative overflow-hidden">
       <img
+        data-parallax="0.15"
         src={imgCtaBg}
         alt=""
-        className="absolute inset-0 w-full h-full object-cover"
+        className="absolute inset-0 w-full h-full object-cover scale-[1.35]"
       />
       <div className="absolute inset-0 bg-[#603809] opacity-80" />
       <img
         src={imgLeaf}
         alt=""
-        className="hidden lg:block absolute -left-16 bottom-0 w-[340px] opacity-90 pointer-events-none select-none"
+        className="leaf-sway hidden lg:block absolute -left-16 bottom-0 w-[340px] opacity-90 origin-bottom-left pointer-events-none select-none"
       />
       <img
         src={imgLeaf}
         alt=""
-        className="hidden lg:block absolute -right-16 bottom-0 w-[340px] -scale-x-100 opacity-90 pointer-events-none select-none"
+        className="leaf-sway [animation-delay:-3s] hidden lg:block absolute -right-16 bottom-0 w-[340px] -scale-x-100 opacity-90 origin-bottom-right pointer-events-none select-none"
       />
-      <div className="relative max-w-3xl mx-auto px-6 md:px-10 py-16 md:py-24 text-center">
+      <div className="relative max-w-3xl mx-auto px-6 md:px-10 py-16 md:py-24 text-center" data-reveal="scale">
         <h2 className="text-white text-3xl md:text-5xl font-bold mb-4">
           Subscribe to get the Latest News
         </h2>
@@ -69,7 +70,7 @@ function Newsletter() {
           </div>
         ) : (
           <form
-            className="flex flex-col sm:flex-row items-center gap-4 bg-[#fff9f1] border border-[#f9c06a]/40 rounded-[8px] p-2 max-w-xl mx-auto"
+            className="flex flex-col sm:flex-row items-center gap-4 bg-[#fff9f1] border border-[#f9c06a]/40 rounded-[8px] p-2 max-w-xl mx-auto transition-[box-shadow,transform] duration-500 focus-within:-translate-y-1 focus-within:shadow-[0_0_0_4px_rgba(249,192,106,0.45),0_25px_50px_rgba(0,0,0,0.35)]"
             onSubmit={handleSubscribe}
           >
             <input

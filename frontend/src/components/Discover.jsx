@@ -4,7 +4,7 @@ import Button from "./Button"
 function Discover() {
   return (
     <section className="max-w-7xl mx-auto px-6 md:px-10 py-16 md:py-24 grid md:grid-cols-2 gap-12 items-center">
-      <div>
+      <div data-reveal="left">
         <h2 className="text-[#603809] text-3xl md:text-5xl font-bold mb-6 leading-tight">
           Discover the best coffee
         </h2>
@@ -18,11 +18,12 @@ function Discover() {
         <Button to="/about">Learn More</Button>
       </div>
       <div className="relative">
-        <div className="rounded-[24px] overflow-hidden aspect-[500/484]">
+        <div data-clip className="rounded-[24px] overflow-hidden aspect-[500/484]">
           <img
+            data-parallax="0.12"
             src={imgDiscover}
             alt="Stylized coffee cup and beans"
-            className="w-full h-full object-cover mix-blend-multiply"
+            className="w-full h-full object-cover mix-blend-multiply scale-125"
           />
         </div>
       </div>
