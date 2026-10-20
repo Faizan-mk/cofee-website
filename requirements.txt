@@ -1,2 +1,19 @@
-# Python deps for the Vercel function in api/ (the chatbot RAG server).
--r rag-backend/requirements.txt
+# Python deps for the chatbot RAG server (rag-backend/), served on Vercel by api/index.py.
+# Vercel only reads this root file (it can't follow "-r" includes), so the list lives here.
+
+# LangChain
+langchain-core>=1.6,<2
+langchain-text-splitters>=1.1,<2
+langchain-google-genai>=4.4,<5
+
+# Gemini SDK (embeddings with a fixed output size)
+google-genai>=2.31,<3
+
+# Supabase (pgvector)
+supabase>=2.33,<3
+
+# API server
+fastapi>=0.150
+uvicorn>=0.54
+
+python-dotenv>=1.0

@@ -83,7 +83,7 @@ curl -X POST http://localhost:8000/api/chat -H "Content-Type: application/json" 
 The API runs as a Vercel Python function next to the frontend, so the chat calls `/api/chat` on the same domain (no CORS, no extra host, no card needed):
 
 - `api/index.py` (repo root) imports `bean_rag.api:app`; Vercel serves the ASGI app.
-- `requirements.txt` (repo root) installs `rag-backend/requirements.txt` (~100 MB, well under Vercel's limit).
+- `requirements.txt` (repo root) holds the runtime deps (~100 MB installed, well under Vercel's limit); `rag-backend/requirements.txt` just includes it.
 - `vercel.json` rewrites `/api/*` to that function and everything else to the React app.
 - Vercel → Project Settings → Environment Variables: `GOOGLE_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (Production + Preview, marked sensitive).
 
