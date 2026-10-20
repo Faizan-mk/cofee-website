@@ -42,6 +42,24 @@ const pick = (list) => list[Math.floor(Math.random() * list.length)]
 
 const typingDelay = () => 600 + Math.random() * 600
 
+// RAG backend (rag-backend/, FastAPI). In dev Vite proxies /api to it; in production
+// set VITE_CHAT_API_URL to the deployed server, e.g. https://bean-rag.onrender.com/api
+const CHAT_API = import.meta.env.VITE_CHAT_API_URL || "/api"
+const HISTORY_TURNS = 6
+
+async function askAssistant(message, history) {
+  const res = await fetch(`${CHAT_API}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, history }),
+    // Free hosting sleeps when idle; the first request can take ~50s to wake it.
+    signal: AbortSignal.timeout(60000),
+  })
+  if (!res.ok) throw new Error(`chat API ${res.status}`)
+  const data = await res.json()
+  return { text: data.answer, items: (data.items ?? []).filter((n) => byName[n]) }
+}
+
 // Matches the `chatwide` variant in index.css: below it the chat goes full-screen (phones, landscape phones).
 const isMobile = () => !window.matchMedia("(min-width: 640px) and (min-height: 560px)").matches
 
@@ -54,7 +72,7 @@ function mentionedItems(q) {
 const orderLink = { label: "Order now", to: "/order" }
 const menuLink = { label: "Open full menu", to: "/menu" }
 
-// Small rule-based assistant built on the real menu data.
+// Offline fallback when the RAG API can't be reached: small rule-based answers from the menu data.
 function reply(input) {
   const q = input.toLowerCase()
   const items = mentionedItems(q)
@@ -97,7 +115,7 @@ function reply(input) {
     }
   }
   if (/hour|open|close|timing|time/.test(q))
-    return { text: "We're open every day, 7:00 AM – 10:00 PM. Early birds get the freshest roast! 🌅" }
+    return { text: "We're open every day, 8:00 AM – 10:00 PM. Early birds get the freshest roast! 🌅" }
   if (/order|buy|deliver|delivery/.test(q))
     return { text: "Ordering is easy — pick your drinks, add them to the cart and checkout in a minute.", links: [orderLink] }
   if (/contact|email|phone|call|reach/.test(q))
@@ -203,6 +221,21 @@ function ItemCards({ names, onPick }) {
   )
 }
 
+// LLM replies use light markdown: render **bold** and turn "* " / "- " list markers into bullets.
+function RichText({ text }) {
+  return text.split("\n").map((line, i) => {
+    const clean = line.replace(/^\s*[*-]\s+/, "• ")
+    return (
+      <span key={i}>
+        {i > 0 && "\n"}
+        {clean.split(/(\*\*[^*]+\*\*)/g).map((part, j) =>
+          part.startsWith("**") && part.endsWith("**") ? <strong key={j}>{part.slice(2, -2)}</strong> : part
+        )}
+      </span>
+    )
+  })
+}
+
 function Message({ m, onNavigate }) {
   if (m.role === "user")
     return (
@@ -218,7 +251,7 @@ function Message({ m, onNavigate }) {
       <Avatar className="w-7 h-7 mb-5" />
       <div className="min-w-0 max-w-[85%] space-y-2">
         <p className="whitespace-pre-line text-[15px] sm:text-sm leading-relaxed px-4 py-2.5 rounded-2xl rounded-bl-md bg-white text-[#1e1e1e] border border-[#603809]/10 shadow-sm w-fit">
-          {m.text}
+          <RichText text={m.text} />
         </p>
         {m.items?.length > 0 && <ItemCards names={m.items} onPick={onNavigate} />}
         {m.links?.length > 0 && (
@@ -235,7 +268,10 @@ function Message({ m, onNavigate }) {
             ))}
           </div>
         )}
-        <span className="block text-[10px] text-[#603809]/50 pl-1">{clock(m.ts)}</span>
+        <span className="block text-[10px] text-[#603809]/50 pl-1">
+          {clock(m.ts)}
+          {m.offline && " · Offline answer — AI server not reachable"}
+        </span>
       </div>
     </div>
   )
@@ -486,12 +522,16 @@ function ChatAssistant() {
           .sort((a, b) => b.updatedAt - a.updatedAt)
       )
 
+    const history = (active?.messages ?? []).map(({ role, text }) => ({ role, text })).slice(-HISTORY_TURNS)
+
     append({ role: "user", text: msg })
     setTyping(true)
-    setTimeout(() => {
-      append({ role: "bot", ...reply(msg) })
-      setTyping(false)
-    }, typingDelay())
+    askAssistant(msg, history)
+      .catch(() => new Promise((ok) => setTimeout(() => ok({ ...reply(msg), offline: true }), typingDelay())))
+      .then((answer) => {
+        append({ role: "bot", ...answer })
+        setTyping(false)
+      })
   }
 
   return (
