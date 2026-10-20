@@ -1,10 +1,9 @@
--e .
+# Runtime dependencies (also installed by Vercel through the root requirements.txt).
+# For local development also run:  pip install -e .   (or use requirements-dev.txt)
 
 # LangChain
 langchain-core>=1.6,<2
 langchain-text-splitters>=1.1,<2
-# SupabaseVectorStore lives here; the package is being sunset, so stay on the tested line.
-langchain-community>=0.4.2,<0.5
 langchain-google-genai>=4.4,<5
 
 # Gemini SDK (embeddings with a fixed output size)

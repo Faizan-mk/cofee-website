@@ -23,7 +23,7 @@ question ──► embedding ──► top 4 similar chunks ◄─────�
 | `src/bean_rag/loader.py` | Reads files from `data/`. |
 | `src/bean_rag/splitter.py` | Markdown-heading split, then size split; adds metadata. |
 | `src/bean_rag/embeddings.py` | Gemini embeddings (768 dims) as a LangChain `Embeddings`. |
-| `src/bean_rag/vectorstore.py` | LangChain `SupabaseVectorStore` on the pgvector table. |
+| `src/bean_rag/vectorstore.py` | Small LangChain `VectorStore` (`SupabasePgVector`) on the pgvector table. |
 | `src/bean_rag/ingest.py` | Pipeline: load → split → embed → store (replaces old chunks). |
 | `src/bean_rag/prompts.py` | The assistant's instructions. |
 | `src/bean_rag/chain.py` | RAG chain: retrieve → prompt → LLM → answer + menu cards. |
@@ -78,21 +78,21 @@ Quick API test:
 curl -X POST http://localhost:8000/api/chat -H "Content-Type: application/json" -d "{\"message\":\"best cold coffee?\"}"
 ```
 
-## Deploy
+## Deploy (Vercel, same project as the website)
 
-The frontend is on Vercel; this server needs a Python host, for example **Render** (free web service):
+The API runs as a Vercel Python function next to the frontend, so the chat calls `/api/chat` on the same domain (no CORS, no extra host, no card needed):
 
-- Root directory: `rag-backend`
-- Build command: `pip install -r requirements.txt`
-- Start command: `uvicorn bean_rag.api:app --host 0.0.0.0 --port $PORT`
-- Environment: `GOOGLE_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CORS_ORIGINS=https://<your-site>.vercel.app`
+- `api/index.py` (repo root) imports `bean_rag.api:app`; Vercel serves the ASGI app.
+- `requirements.txt` (repo root) installs `rag-backend/requirements.txt` (~100 MB, well under Vercel's limit).
+- `vercel.json` rewrites `/api/*` to that function and everything else to the React app.
+- Vercel → Project Settings → Environment Variables: `GOOGLE_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (Production + Preview, marked sensitive).
 
-Or use the Blueprint: `render.yaml` in the repo root sets all of this up (Render -> New -> Blueprint); you only paste the two secret keys. The free plan sleeps after ~15 idle minutes, so the first question after a break can take ~50 seconds.
+Every push to `main` redeploys both the site and the API. Leave `VITE_CHAT_API_URL` unset so the chat uses the same-origin `/api`.
 
-Then in Vercel set `VITE_CHAT_API_URL=https://<your-render-app>.onrender.com/api` and redeploy the frontend.
+Alternative: `render.yaml` describes the same server for Render (New → Blueprint). Render's free plan needs a card on file and sleeps after ~15 idle minutes; if you use it, set `VITE_CHAT_API_URL=https://<app>.onrender.com/api` in Vercel.
 
 ## Notes
 
 - Models are set in `config.py` / `.env` (`LLM_MODEL`, default `gemini-3.5-flash-lite`, fast and no long "thinking"; `EMBEDDING_MODEL`, default `gemini-embedding-001`). If you change the embedding model or its size, update `vector(768)` in the SQL and re-ingest.
-- `langchain-community` (home of `SupabaseVectorStore`) is being sunset upstream, so `requirements.txt` pins it to the tested version.
+- The vector store is our own `SupabasePgVector` instead of `langchain-community`'s `SupabaseVectorStore`: that package is being sunset and its dependencies would bloat the serverless bundle.
 - To regenerate the notebooks: `python notebooks/_build_notebooks.py`.

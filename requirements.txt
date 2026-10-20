@@ -1,0 +1,2 @@
+# Python deps for the Vercel function in api/ (the chatbot RAG server).
+-r rag-backend/requirements.txt
