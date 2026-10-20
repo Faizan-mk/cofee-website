@@ -30,21 +30,23 @@ class Answer:
 
 
 @lru_cache
-def get_llm() -> ChatGoogleGenerativeAI:
+def get_llm(model: str, timeout: int = 30, max_retries: int = 3) -> ChatGoogleGenerativeAI:
     settings.require("google_api_key")
+    # max_retries also covers 429s from the free tier's per-minute limit (short backoff, then retry).
     return ChatGoogleGenerativeAI(
-        model=settings.llm_model, google_api_key=settings.google_api_key, timeout=30, max_retries=1
+        model=model, google_api_key=settings.google_api_key, timeout=timeout, max_retries=max_retries
     )
 
 
 @lru_cache
 def get_chain():
-    return prompt | get_llm() | StrOutputParser()
+    return prompt | get_llm(settings.llm_model) | StrOutputParser()
 
 
 @lru_cache
 def get_rewriter():
-    return rewrite_prompt | get_llm() | StrOutputParser()
+    # Fail fast: if rewriting is slow or overloaded, search_query() falls back to the raw question.
+    return rewrite_prompt | get_llm(settings.rewrite_model, timeout=8, max_retries=0) | StrOutputParser()
 
 
 def format_context(docs: list[Document]) -> str:
@@ -74,9 +76,19 @@ def retrieve(question: str, history: list[dict] | None = None, k: int = settings
     return get_vectorstore().similarity_search(search_query(question, history), k=k)
 
 
+@lru_cache
+def price_list_doc() -> Document | None:
+    """The short full price list, always added to the context so Beanie can suggest real
+    alternatives ("no pizza, but try…") even when the search found no menu chunks."""
+    return next((d for d in split_files(load_files()) if d.metadata.get("path") == "Menu > Full price list"), None)
+
+
 def answer(question: str, history: list[dict] | None = None) -> Answer:
     query = search_query(question, history)
     docs = get_vectorstore().similarity_search(query, k=settings.top_k)
+    prices = price_list_doc()
+    if prices and all(d.metadata.get("path") != prices.metadata["path"] for d in docs):
+        docs.append(prices)
     text = get_chain().invoke(
         {"context": format_context(docs), "history": to_messages(history or []), "question": question}
     )

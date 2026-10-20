@@ -25,6 +25,9 @@ class Settings:
 
     # Models
     llm_model: str = field(default_factory=lambda: _env("LLM_MODEL", "gemini-3.5-flash-lite"))
+    # Search-query rewriting uses a different model on purpose: the Gemini free tier limits
+    # requests per minute *per model* (15), so splitting the two calls spreads the load.
+    rewrite_model: str = field(default_factory=lambda: _env("REWRITE_MODEL", "gemini-flash-lite-latest"))
     embedding_model: str = field(default_factory=lambda: _env("EMBEDDING_MODEL", "gemini-embedding-001"))
     # Must match vector(768) in sql/001_pgvector.sql.
     embedding_dim: int = 768
