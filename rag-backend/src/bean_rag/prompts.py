@@ -26,6 +26,25 @@ Answer ONLY from the context below, which comes from Bean Scene's own data.
 Context:
 {context}"""
 
+# Turns the customer's message into a clean search query before retrieval: customers type
+# Roman Urdu with typos ("kuch meetga our thnada batao") and follow-ups ("iski price?"),
+# which embed poorly. The rewrite is only used for the vector search, never shown.
+REWRITE_SYSTEM = """Rewrite the customer's latest message as one short English search query for a
+coffee shop's knowledge base (menu, prices, ordering, delivery, hours, contact, coffee facts).
+- Fix spelling mistakes and translate Urdu / Roman Urdu / Hindi to English.
+- Use the earlier conversation ONLY to resolve references like "it", "this", "iski", "uska",
+  "the second one". If the latest message is a new topic, ignore the earlier conversation.
+- Keep item names exactly (e.g. Iced Latte, Mocha Frappe).
+Reply with the query only, no quotes or explanation."""
+
+rewrite_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", REWRITE_SYSTEM),
+        MessagesPlaceholder("history"),
+        ("human", "Latest message: {question}"),
+    ]
+)
+
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", SYSTEM),

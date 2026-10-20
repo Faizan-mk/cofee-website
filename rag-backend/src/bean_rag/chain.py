@@ -1,5 +1,6 @@
-"""RAG: question -> top-k chunks from pgvector -> Gemini answer."""
+"""RAG: question -> rewritten search query -> top-k chunks from pgvector -> Gemini answer."""
 
+import logging
 import re
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -11,9 +12,11 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 
 from .config import settings
 from .loader import load_files
-from .prompts import prompt
+from .prompts import prompt, rewrite_prompt
 from .splitter import split_files
 from .vectorstore import get_vectorstore
+
+log = logging.getLogger("bean_rag")
 
 HISTORY_TURNS = 6
 
@@ -23,15 +26,25 @@ class Answer:
     answer: str
     items: list[str] = field(default_factory=list)  # menu items to show as cards
     sources: list[dict] = field(default_factory=list)
+    query: str = ""  # the rewritten search query (for debugging)
+
+
+@lru_cache
+def get_llm() -> ChatGoogleGenerativeAI:
+    settings.require("google_api_key")
+    return ChatGoogleGenerativeAI(
+        model=settings.llm_model, google_api_key=settings.google_api_key, timeout=30, max_retries=1
+    )
 
 
 @lru_cache
 def get_chain():
-    settings.require("google_api_key")
-    llm = ChatGoogleGenerativeAI(
-        model=settings.llm_model, google_api_key=settings.google_api_key, timeout=30, max_retries=1
-    )
-    return prompt | llm | StrOutputParser()
+    return prompt | get_llm() | StrOutputParser()
+
+
+@lru_cache
+def get_rewriter():
+    return rewrite_prompt | get_llm() | StrOutputParser()
 
 
 def format_context(docs: list[Document]) -> str:
@@ -47,20 +60,28 @@ def to_messages(history: list[dict]) -> list[BaseMessage]:
     return msgs
 
 
+def search_query(question: str, history: list[dict] | None = None) -> str:
+    """Clean English search query: fixes typos, translates Roman Urdu, resolves follow-ups."""
+    try:
+        query = get_rewriter().invoke({"history": to_messages(history or []), "question": question}).strip()
+        return query or question
+    except Exception:
+        log.warning("query rewrite failed; searching with the raw question", exc_info=True)
+        return question
+
+
 def retrieve(question: str, history: list[dict] | None = None, k: int = settings.top_k) -> list[Document]:
-    # Follow-ups like "and its price?" need the previous question to find the right chunk.
-    prev = [m["text"] for m in (history or []) if m.get("role") == "user" and m.get("text")]
-    query = f"{prev[-1]}\n{question}" if prev else question
-    return get_vectorstore().similarity_search(query, k=k)
+    return get_vectorstore().similarity_search(search_query(question, history), k=k)
 
 
 def answer(question: str, history: list[dict] | None = None) -> Answer:
-    docs = retrieve(question, history)
+    query = search_query(question, history)
+    docs = get_vectorstore().similarity_search(query, k=settings.top_k)
     text = get_chain().invoke(
         {"context": format_context(docs), "history": to_messages(history or []), "question": question}
     )
     sources = [{"path": d.metadata.get("path"), "type": d.metadata.get("type")} for d in docs]
-    return Answer(answer=text, items=mentioned_items(text), sources=sources)
+    return Answer(answer=text, items=mentioned_items(text), sources=sources, query=query)
 
 
 @lru_cache
