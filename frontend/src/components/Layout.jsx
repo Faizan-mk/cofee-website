@@ -6,6 +6,8 @@ import Preloader from "./Preloader"
 import Cursor from "./Cursor"
 import ScrollProgress from "./ScrollProgress"
 import ScrollCup from "./ScrollCup"
+import ChatAssistant from "./ChatAssistant"
+import BackToTop from "./BackToTop"
 import { gsap, useGSAP, reducedMotion } from "../lib/gsap"
 import { useReveal } from "../lib/useReveal"
 import { startSmoothScroll } from "../lib/smoothScroll"
@@ -45,6 +47,8 @@ function Layout() {
         <Outlet />
       </main>
       <Footer />
+      <ChatAssistant />
+      <BackToTop />
       <div className="film-vignette" aria-hidden="true" />
       <div className="film-grain" aria-hidden="true" />
     </div>
