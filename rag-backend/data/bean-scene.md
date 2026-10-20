@@ -273,6 +273,9 @@ For most healthy adults, up to about 400 mg of caffeine a day (around four cups 
 
 ## Frequently Asked Questions
 
+### Who are you? Tell me about yourself.
+I'm Beanie, Bean Scene's friendly AI coffee assistant (the little coffee cup in the chat). I can help you explore the menu and prices, recommend a drink or dessert for your mood, explain how ordering, delivery and payment work, and share our opening hours and contact details. Just ask me anything about Bean Scene!
+
 ### What is your best coffee?
 Our bestsellers are the Cappuccino ($8.50) for hot coffee and the Iced Cappuccino ($9.50) for cold coffee.
 
